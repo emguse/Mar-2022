@@ -4,7 +4,7 @@ import time
 from adafruit_bus_device.i2c_device import I2CDevice
 
 '''
-- 2022/03/03 ver.0.05
+- 2022/03/05 ver.0.06
 - Author : emguse
 '''
 
@@ -292,13 +292,13 @@ class RealTimeClockRX8900():
     def read_temp(self):
         raw = self._read(1)
         return (raw[0] * 2 - 187.19) / 3.218
-    def set_min_alm_enable(self):
+    def set_min_alm_enable(self, ae):
+        '''
+        - AE = 0: Desable Alarm
+        - AE = 1: Enable Alarm
+        '''
         evacuation = self._read_from_addr(_MIN_ALM_REG, 1)
-        data = evacuation | 0x80
-        self._write(_MIN_ALM_REG, data)
-    def set_min_alm_disable(self):
-        evacuation = self._read_from_addr(_MIN_ALM_REG, 1)
-        data = evacuation & 0x7F
+        data = evacuation & 0x7F | (ae << 7)
         self._write(_MIN_ALM_REG, data)
     def set_alm_min(self, min):
         bcd =  self._bcd_encode([min])
@@ -306,13 +306,13 @@ class RealTimeClockRX8900():
         evacuation = bitarray & 0x80
         data = evacuation | bcd
         self._write(_MIN_ALM_REG, data)
-    def set_hour_alm_enable(self):
+    def set_hour_alm_enable(self, ae):
+        '''
+        - AE = 0: Desable Alarm
+        - AE = 1: Enable Alarm
+        '''
         evacuation = self._read_from_addr(_HOUR_ALM_REG, 1)
-        data = evacuation | 0x80
-        self._write(_MIN_ALM_REG, data)
-    def set_hour_alm_disable(self):
-        evacuation = self._read_from_addr(_HOUR_ALM_REG, 1)
-        data = evacuation & 0x7F
+        data = evacuation & 0x7F | (ae << 7)
         self._write(_MIN_ALM_REG, data)
     def set_alm_hour(self, hour):
         bcd =  self._bcd_encode([hour])
@@ -343,6 +343,25 @@ class RealTimeClockRX8900():
         evacuation = bitarray & 0x80
         data = evacuation | bcd
         self._write(_W_D_ALM_REG, data)
+    def set_day_alm_enable(self, ae):
+        '''
+        - AE = 0: Desable Alarm
+        - AE = 1: Enable Alarm
+        '''
+        evacuation = self._read_from_addr(_W_D_ALM_REG, 1)
+        data = evacuation & 0x7F | (ae << 7)
+        self._write(_W_D_ALM_REG, data)
+    def set_alm_interrupt(self, aie):
+        '''
+        - AIE = 0: Desable Alarm interrupt
+        - AIE = 1: Enable Alarm interrupt
+        '''
+        self._read_control_Register()
+        self.ctl_reg['AIE'] = aie
+        ctl_reg_set = self._build_control_Register(
+            self.ext_reg['CSEL'], self.ext_reg['UIE'], self.ext_reg['TIE'], 
+            self.ext_reg['AIE'], self.ext_reg['RESET'])
+        self._write(_CTRL_REG, ctl_reg_set)
     def set_timer_counter(self, timer):
         '''
         set counter
@@ -370,8 +389,8 @@ class RealTimeClockRX8900():
             self.ext_reg['FSEL'], self.ext_reg['TSEL'])
     def set_timer_enable(self, te):
         '''
-        - TE = 0: Timer Desable (Stop count down)
-        - TE = 1: Timer Enable (Start count down)
+        - TE = 0: Desable Timer (Stop count down)
+        - TE = 1: Enable Timer (Start count down)
         '''
         self._read_extension_register()
         self.ext_reg['TE'] = te
