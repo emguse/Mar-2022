@@ -1,4 +1,3 @@
-from turtle import color
 import matplotlib.pyplot as plt
 
 x = list(range(1,11))
